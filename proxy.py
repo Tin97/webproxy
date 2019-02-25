@@ -35,12 +35,12 @@ def proxy_function(conn, address):
     url = line.split(' ')[1]
     #print(url)
 
+    print("Request:\n", url)
+
     http_index = url.find("://")
 
     if ( http_index != -1):
         url = url[(http_index + 3):]
-
-    print(url)
 
     port_index = url.find(":")
     webserver_index = url.find("/")
@@ -54,8 +54,16 @@ def proxy_function(conn, address):
         port = int((url[(port_index+1):])[:webserver_index-port_index-1])
         webserver = url[:port_index]
 
-    print(port)
-    print(webserver)
+    print("Port: "port)
+    print("Webserver: "webserver)
+    f = open("blockedURLs.txt", "r")
+    lines = f.readline()
+
+    for i in lines:
+        if webserver == i:
+            print("That webserver was blocked.")
+            conn.close()
+            sys.exit()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((webserver, port))

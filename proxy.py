@@ -35,8 +35,6 @@ def proxy_function(conn, address):
     url = line.split(' ')[1]
     #print(url)
 
-    print("Request:\n", url)
-
     http_index = url.find("://")
 
     if ( http_index != -1):
@@ -47,6 +45,9 @@ def proxy_function(conn, address):
     if webserver_index == -1:
         webserver_index = len(url)
 
+    port = -1
+    webserver = ""
+
     if (port_index==-1 or webserver_index < port_index):
         port = 80
         webserver = url[:webserver_index]
@@ -54,31 +55,45 @@ def proxy_function(conn, address):
         port = int((url[(port_index+1):])[:webserver_index-port_index-1])
         webserver = url[:port_index]
 
-    print("Port: "port)
-    print("Webserver: "webserver)
+    #print("Port: ", port)
+    #print("Webserver: ", webserver)
     f = open("blockedURLs.txt", "r")
-    lines = f.readline()
+    lines = f.readlines()
 
     for i in lines:
-        if webserver == i:
+        print(i)
+        print(webserver)
+        if str(webserver) == str(i):
             print("That webserver was blocked.")
             conn.close()
-            sys.exit()
+            sys.exit(1)
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((webserver, port))
-    s.send(req)
+    print("Request:\n", req)
+    print("Port: ", port)
+    print("Webserver: ", webserver)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((webserver, port))
+        s.send(req)
 
-    while 1:
-        data = s.recv(DATA)
+        while True:
+            data = s.recv(DATA)
+            #print("aefs",data)
+            if (len(data) > 0):
+                conn.send(data)
+                print("sent")
+            else:
+                break
 
-        if (len(data) > 0):
-            conn.send(data)
-        else:
-            break
-
-    s.close()
-    conn.close()
+        s.close()
+        conn.close()
+    except socket.error as e:
+        if s:
+            s.close()
+        if conn:
+            conn.close()
+        print(e)
+        sys.exit(1)
 
 
 if __name__ == '__main__':

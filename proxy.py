@@ -1,17 +1,21 @@
 import os, sys, socket,_thread
 
-BACKLOG = 50
-DATA = 99999
-port = 8080
-host = ''
+BACKLOG = 50    # maximum number of pending connections
+DATA = 99999    # maximum number of bytes that can be received
+port = 8080     # the port number
+host = ''       # we leave the host blank for localhost
 
 def main():
 
     try:
         print("localhost\nport:", port)
 
+        # we create a socket and and bind it with our host and property
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((host, port))
+
+        # the function that listens to spot when the browser wants
+        # to connect
         s.listen(BACKLOG)
 
     except socket.error as e:
@@ -21,20 +25,24 @@ def main():
         sys.exit(1)
 
     while True:
-
+        # when the browser connects we accept and we start a new proxy thread
         conn, address = s.accept()
         _thread.start_new_thread(proxy_function, (conn, address))
 
     s.close()
 
+
 def proxy_function(conn, address):
+    # the request we get from browser
     req = conn.recv(DATA)
 
+    # we need to get the first line of the request to find
+    # the url of the webserver
     line = req.decode().split('\n')[0]
 
     url = line.split(' ')[1]
-    #print(url)
 
+    # we find the index of te port and the webserver
     http_index = url.find("://")
 
     if ( http_index != -1):
@@ -55,8 +63,8 @@ def proxy_function(conn, address):
         port = int((url[(port_index+1):])[:webserver_index-port_index-1])
         webserver = url[:port_index]
 
-    #print("Port: ", port)
-    #print("Webserver: ", webserver)
+    # we check whether the webserver is in the blocklist
+    # if it is we don't send anything to the webserver
     f = open("blockedURLs.txt", "r")
     lines = f.readlines()
 
@@ -72,13 +80,16 @@ def proxy_function(conn, address):
     print("Port: ", port)
     print("Webserver: ", webserver)
     try:
+        # we connect to the webserver and send the request
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((webserver, port))
         s.send(req)
 
         while True:
+            # we receive data from the webserver and send it
+            # to browser
             data = s.recv(DATA)
-            #print("aefs",data)
+            
             if (len(data) > 0):
                 conn.send(data)
                 print("sent")
